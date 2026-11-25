@@ -1,4 +1,9 @@
 # draw.py — renders the 25 November 2026 broadsheet front page, CLASSIC CREAM style.
+# Modelled closely on the reference broadsheet: navy bars, giant serif
+# masthead, centred stats strip, italic ticker, six big numbers, three
+# big heroes with scene illustrations, THE DAY IN EIGHT, map + list +
+# DATE CHECK, navy footer. Photos in the reference are replaced by large
+# detailed vector scenes (no photos available to the renderer).
 # Run locally with Pillow:  python3 draw.py [output-path]
 # The graded entrypoint is main.ts, which only copies the shipped
 # entry.png into /output (Node stdlib only, no network, deterministic).
@@ -13,12 +18,13 @@ FONT_DIR = "/usr/share/fonts/truetype/noto"
 
 PAPER = (248, 242, 228)
 INK = (20, 20, 20)
-NAVY = (30, 50, 90)
+NAVY = (27, 47, 94)
 RED = (178, 34, 34)
 GREY = (96, 90, 78)
 GREEN = (0, 140, 90)
 ORANGE = (214, 120, 30)
 TINT_BLUE = (226, 234, 242)
+TINT_BAND = (232, 238, 245)
 TINT_SAND = (240, 228, 205)
 TINT_PALE = (238, 232, 218)
 LAND = (222, 208, 172)
@@ -54,15 +60,6 @@ def wrap(d, text, fnt, max_w):
     if cur:
         lines.append(cur)
     return lines
-
-
-def chip(d, x, y, text, bg, fg):
-    f = F_BOLD(9)
-    tw = d.textlength(text, font=f)
-    pad = 5
-    d.rectangle([x, y, x + tw + pad * 2, y + 14], fill=bg)
-    d.text((x + pad, y + 2), text, font=f, fill=fg)
-    return tw + pad * 2 + 6
 
 
 def draw_hero_scene(d, kind, x, y, w, h):
@@ -231,57 +228,62 @@ def draw_mini(d, kind, x, y, s, bg, fg):
                fill=WHITE, width=2)
 
 
-def draw_small_panel(d, kind, x, y, w, h, bg, fg):
-    # Small illustration strip for THE DAY IN EIGHT: a framed, enlarged
-    # category glyph on the left and abstract caption lines on the right.
+def draw_small_panel(d, n, kind, region, x, y, w, h, bg, fg):
+    # Small illustration strip for THE DAY IN EIGHT, as in the reference:
+    # a tab strip on top (red number square + navy region tab), then a
+    # framed, enlarged category glyph on the left and caption lines.
     d.rectangle([x, y, x + w, y + h], fill=bg, outline=INK, width=1)
+    d.rectangle([x, y, x + w, y + 16], fill=NAVY)
+    d.rectangle([x, y, x + 16, y + 16], fill=RED)
+    d.text((x + 8, y + 3), str(n), font=F_BOLD(10), fill=WHITE, anchor="ma")
+    d.text((x + 22, y + 3), region, font=F_BOLD(9), fill=WHITE)
     tile = Image.new("RGB", (17, 17), bg)
     td = ImageDraw.Draw(tile)
     draw_mini(td, kind, 1, 1, 15, bg, fg)
-    gs = 38
+    gs = 24
     big = tile.resize((gs, gs), Image.NEAREST)
-    d._image.paste(big, (x + 8, y + (h - gs) // 2))
-    lx = x + 56
-    for i, lw in enumerate([150, 168, 118]):
-        ly = y + 10 + i * 11
+    d._image.paste(big, (x + 8, y + 18))
+    lx = x + 40
+    for i, lw in enumerate([150, 118]):
+        ly = y + 24 + i * 10
         d.rectangle([lx, ly, lx + lw, ly + 3], fill=(196, 188, 168))
 
 
 HEROES = [
-    ("MIDDLE EAST", "CLAIM", RED, "flame",
+    ("flame", True,
      "Houthis claim strikes on Saudi refinery and Riyadh",
      "Group says it hit Ras Tanura refinery and the capital's "
      "financial district; coalition says it shot down 4 drones.",
-     "Reuters", "MIDDLE EAST • P. 2"),
-    ("ASIA", "REPORTED", GREEN, "rocket",
+     "MIDDLE EAST | CONFLICT", "MIDDLE EAST • P. 2 • REUTERS"),
+    ("rocket", False,
      "Shenzhou-24 lifts off with first foreign astronaut",
      "China's crew to Tiangong includes Pakistani Muhammad Zeeshan "
      "Ali, the first foreign visitor to the station.",
-     "Xinhua / AP", "ASIA • P. 3"),
-    ("EUROPE", "REPORTED", GREEN, "bars",
+     "ASIA | SPACE", "ASIA • P. 3 • XINHUA / AP"),
+    ("bars", False,
      "BBC: at least 490,334 Russian soldiers dead",
      "BBC and Mediazona count from leaked Rosstat records since "
      "Feb 2022; the true toll is likely higher.",
-     "BBC", "EUROPE • P. 4"),
+     "EUROPE | CONFLICT", "EUROPE • P. 4 • BBC"),
 ]
 
 EIGHT = [
-    (4, "chart", "Asian markets tumble in renewed AI sell-off",
-     "MSCI Asia ex-Japan falls 2.3%.", "Reuters"),
-    (5, "shield", "Australia signs security pact with Solomons",
-     "Canberra named the primary security partner.", "AP"),
-    (6, "exit", "North Korea expels Switzerland's top diplomat",
-     "Envoy out in 48 hours; office closed.", "AP / KCNA"),
-    (7, "target", "Coalition strikes Houthi-run Hodeidah port",
-     "Coalition hit port capabilities.", "Al Jazeera"),
-    (8, "rocket", "ESA to show first Hera images of Dimorphos",
-     "First close-ups of asteroid Dimorphos due.", "ESA"),
-    (9, "ball", "Real Madrid hit PSV 5-1; Arsenal and Man City draw",
-     "Madrid win 5-1; Arsenal and City draw.", "UEFA"),
-    (10, "warn", "26 miners trapped in flooded gold mine in West Java",
-     "Police say 26 trapped; media say ~30.", "Reuters"),
-    (11, "court", "India top court refuses bail to Khalid and Imam",
-     "Bail refused in Delhi riots case.", "LiveLaw"),
+    (4, "chart", "ASIA", "Asian markets tumble in renewed AI sell-off",
+     "MSCI Asia ex-Japan falls 2.3%.", "BUSINESS • P. 5"),
+    (5, "shield", "OCEANIA", "Australia signs security pact with Solomons",
+     "Canberra named the primary security partner.", "POLITICS • P. 6"),
+    (6, "exit", "ASIA", "North Korea expels Switzerland's top diplomat",
+     "Envoy out in 48 hours; office closed.", "POLITICS • P. 7"),
+    (7, "target", "MIDDLE EAST", "Coalition strikes Houthi-run Hodeidah port",
+     "Coalition hit port capabilities.", "WORLD • P. 8"),
+    (8, "rocket", "EUROPE", "ESA to show first Hera images of Dimorphos",
+     "First close-ups of asteroid Dimorphos due.", "SCIENCE • P. 9"),
+    (9, "ball", "EUROPE", "Real Madrid hit PSV 5-1; Arsenal and Man City draw",
+     "Madrid win 5-1; Arsenal and City draw.", "SPORT • P. 10"),
+    (10, "warn", "ASIA", "26 miners trapped in flooded gold mine in West Java",
+     "Police say 26 trapped; media say ~30.", "WORLD • P. 11"),
+    (11, "court", "ASIA", "India top court refuses bail to Khalid and Imam",
+     "Bail refused in Delhi riots case.", "COURTS • P. 12"),
 ]
 
 LISTED = [
@@ -320,8 +322,8 @@ NUMBERS = [
     ("26", "MINERS TRAPPED, POLICE SAY"),
 ]
 
-REGION_COUNTS = ("ASIA 9  •  EUROPE 7  •  MIDDLE EAST 6  •  AMERICAS 5  •  "
-                 "OCEANIA 4  •  AFRICA 3  •  WORLD 1")
+STATS_LINE = ("35 STORIES, ALL FROM WEDNESDAY 25 NOV  •  ASIA 9  •  EUROPE 7  •  "
+              "MIDDLE EAST 6  •  AMERICAS 5  •  OCEANIA 4  •  AFRICA 3  •  WORLD 1")
 
 CONTINENTS = [
     [(-168, 66), (-150, 70), (-130, 71), (-115, 68), (-100, 69), (-90, 68),
@@ -366,16 +368,10 @@ CONTINENTS = [
 ]
 
 MAP_DOTS = [
-    (1, 54.0, 25.0), (2, 98.5, 39.8), (3, 33.0, 48.0), (5, 149.1, -35.3),
-    (6, 128.0, 42.0), (7, 40.0, 13.0), (8, 12.0, 52.0), (9, -3.7, 40.4),
+    (1, 56.0, 27.0), (2, 100.0, 40.0), (3, 36.0, 50.0), (5, 149.1, -35.3),
+    (6, 128.0, 42.0), (7, 40.0, 13.0), (8, 10.0, 53.0), (9, -6.0, 39.0),
     (10, 106.8, -6.6), (11, 77.2, 28.6), (14, 34.5, 31.5),
     (25, -93.5, 41.6), (29, -4.0, 17.0),
-]
-
-MAP_LABELS = [
-    ("N. AMERICA", -128, 58), ("S. AMERICA", -60, -20),
-    ("EUROPE", 8, 68), ("AFRICA", 14, -2),
-    ("ASIA", 75, 60), ("OCEANIA", 105, -32),
 ]
 
 
@@ -384,88 +380,87 @@ def render(path):
     d = ImageDraw.Draw(img)
     mx = 24
 
-    # ---- Dark top bar ----
-    d.rectangle([0, 0, W, 34], fill=INK)
+    # ---- Navy top bar ----
+    d.rectangle([0, 0, W, 34], fill=NAVY)
     d.text((mx, 10), "THE WORLD IN ONE DAY", font=F_BOLD(12), fill=WHITE)
-    d.text((W - mx, 10), "WEDNESDAY 25 NOVEMBER 2026",
+    d.text((W - mx, 10), "EVERY STORY DATED WEDNESDAY 25 NOVEMBER 2026",
            font=F_BOLD(12), fill=WHITE, anchor="ra")
 
     # ---- Giant serif masthead ----
-    d.text((W / 2, 44), "Wednesday 25 November 2026",
-           font=F_SERIF_BL(44), fill=INK, anchor="ma")
+    d.text((W / 2, 42), "Wednesday 25 November 2026",
+           font=F_SERIF_BL(48), fill=INK, anchor="ma")
 
-    # ---- Stats strip ----
-    d.rectangle([mx, 100, W - mx, 101], fill=INK)
-    d.text((mx, 106), "35 STORIES, ALL FROM WEDNESDAY 25 NOV",
-           font=F_BOLD(11), fill=NAVY)
-    d.text((W - mx, 108), REGION_COUNTS, font=F_BOLD(9), fill=GREY, anchor="ra")
-    d.rectangle([mx, 128, W - mx, 129], fill=INK)
+    # ---- Stats strip, centred ----
+    d.rectangle([mx, 102, W - mx, 103], fill=INK)
+    d.text((W / 2, 108), STATS_LINE, font=F_BOLD(11), fill=INK, anchor="ma")
+    d.rectangle([mx, 130, W - mx, 131], fill=INK)
 
-    # ---- Ticker: the three top headlines ----
-    d.rectangle([0, 132, W, 158], fill=INK)
-    ticker = ("HOUTHIS CLAIM STRIKES ON SAUDI REFINERY AND RIYADH    •    "
-              "SHENZHOU-24 LIFTS OFF WITH FIRST FOREIGN ASTRONAUT    •    "
-              "BBC: AT LEAST 490,334 RUSSIAN SOLDIERS DEAD")
-    d.text((W / 2, 140), ticker, font=F_BOLD(11), fill=WHITE, anchor="ma")
+    # ---- Ticker: italic serif on a pale band ----
+    d.rectangle([0, 134, W, 164], fill=TINT_BAND)
+    ticker = ("Houthis claim strikes on Saudi refinery and Riyadh  •  "
+              "Shenzhou-24 lifts off with first foreign astronaut  •  "
+              "BBC: at least 490,334 Russian soldiers dead")
+    d.text((W / 2, 142), ticker, font=F_SERIF_I(12), fill=INK, anchor="ma")
 
     # ---- Six big numbers ----
-    d.rectangle([mx, 162, W - mx, 163], fill=INK)
+    d.rectangle([mx, 168, W - mx, 169], fill=INK)
     for i, (num, label) in enumerate(NUMBERS):
         cx = mx + i * 163
-        d.text((cx + 2, 168), num, font=F_SERIF_B(21),
-               fill=RED if num.startswith("-") else NAVY)
-        d.text((cx + 2, 196), label, font=F_BOLD(8), fill=GREY)
-    d.rectangle([mx, 214, W - mx, 215], fill=INK)
+        if i > 0:
+            d.line([(cx - 8, 174), (cx - 8, 228)], fill=(200, 192, 172), width=1)
+        d.text((cx + 2, 174), num, font=F_SERIF_BL(28),
+               fill=RED if num.startswith("-") else INK)
+        d.text((cx + 2, 210), label, font=F_BOLD(8), fill=GREY)
+    d.rectangle([mx, 234, W - mx, 235], fill=INK)
 
     # ---- Three big heroes ----
     for idx, hero in enumerate(HEROES):
-        region, status, sbg, kind, head, summ, src, secpage = hero
+        kind, is_claim, head, summ, strip, secpage = hero
         x = mx + idx * (312 + 16)
-        y = 222
-        d.text((x, y), region, font=F_BOLD(10), fill=NAVY)
-        cw = chip(d, x + d.textlength(region, font=F_BOLD(10)) + 8, y - 2,
-                  status, sbg, WHITE)
-        sx = x + d.textlength(region, font=F_BOLD(10)) + 8 + cw
-        d.text((sx, y), src, font=F_IT(10), fill=GREY)
-        draw_hero_scene(d, kind, x, y + 18, 312, 150)
-        hy = y + 176
-        for line in wrap(d, head, F_SERIF_B(16), 312)[:2]:
-            d.text((x, hy), line, font=F_SERIF_B(16), fill=INK)
-            hy += 19
-        sy = y + 216
-        for line in wrap(d, summ, F_REG(10), 312)[:2]:
-            d.text((x, sy), line, font=F_REG(10), fill=(52, 48, 40))
-            sy += 13
-        d.text((x, y + 244), secpage, font=F_BOLD(9), fill=GREY)
+        y = 242
+        draw_hero_scene(d, kind, x, y, 312, 180)
+        # Navy strip at the bottom of the picture, as in the reference.
+        d.rectangle([x, y + 158, x + 312, y + 180], fill=NAVY)
+        d.text((x + 10, y + 163), strip, font=F_BOLD(10), fill=WHITE)
+        if is_claim:
+            d.rectangle([x + 8, y + 8, x + 62, y + 26], fill=RED)
+            d.text((x + 35, y + 11), "CLAIM", font=F_BOLD(10), fill=WHITE,
+                   anchor="ma")
+        hy = y + 188
+        for line in wrap(d, head, F_SERIF_B(19), 312)[:2]:
+            d.text((x, hy), line, font=F_SERIF_B(19), fill=INK)
+            hy += 22
+        sy = y + 234
+        for line in wrap(d, summ, F_REG(11), 312)[:2]:
+            d.text((x, sy), line, font=F_REG(11), fill=(52, 48, 40))
+            sy += 14
+        d.text((x, y + 268), secpage, font=F_BOLD(9), fill=NAVY)
 
-    # ---- The day in eight ----
-    ey = 490
-    d.text((mx, ey), "THE DAY IN EIGHT", font=F_SERIF_B(15), fill=INK)
-    d.text((W - mx, ey + 2), "EIGHT STORIES THAT SHAPED THE DAY",
-           font=F_BOLD(9), fill=GREY, anchor="ra")
-    d.rectangle([mx, ey + 22, W - mx, ey + 24], fill=INK)
-    for i, (n, kind, head, summ, src) in enumerate(EIGHT):
+    # ---- The day in eight: navy bar + 4x2 cards ----
+    ey = 552
+    d.rectangle([0, ey, W, ey + 26], fill=NAVY)
+    d.text((mx, ey + 6), "THE DAY IN EIGHT", font=F_BOLD(12), fill=WHITE)
+    d.text((W - mx, ey + 6), "EVERY PICTURE DATED, EVERY STORY SOURCED",
+           font=F_BOLD(10), fill=WHITE, anchor="ra")
+    for i, (n, kind, region, head, summ, secpage) in enumerate(EIGHT):
         col = i % 4
         row = i // 4
         x = mx + col * (232 + 16)
-        y = ey + 32 + row * 102
-        draw_small_panel(d, kind, x, y, 232, 42, TINT_PALE, NAVY)
-        num_w = d.textlength(f"{n}.  ", font=F_BOLD(11))
-        d.text((x, y + 48), f"{n}.", font=F_BOLD(11), fill=RED)
-        hy = y + 48
-        for line in wrap(d, head, F_BOLD(11), 232 - num_w)[:2]:
-            d.text((x + num_w, hy), line, font=F_BOLD(11), fill=INK)
-            hy += 13
-        d.text((x, y + 78), summ + "  — " + src, font=F_REG(9),
-               fill=(52, 48, 40))
+        y = ey + 34 + row * 116
+        draw_small_panel(d, n, kind, region, x, y, 232, 44, TINT_PALE, NAVY)
+        hy = y + 50
+        for line in wrap(d, head, F_SERIF_B(12), 232)[:2]:
+            d.text((x, hy), line, font=F_SERIF_B(12), fill=INK)
+            hy += 15
+        d.text((x, y + 82), summ, font=F_REG(9), fill=(52, 48, 40))
+        d.text((x, y + 96), secpage, font=F_BOLD(8), fill=NAVY)
 
-    # ---- Also on Wednesday: map + 3-column list + date check ----
-    ay = 728
-    d.text((mx, ay), "ALSO ON WEDNESDAY — 24 MORE STORIES",
-           font=F_SERIF_B(15), fill=INK)
-    d.rectangle([mx, ay + 22, W - mx, ay + 24], fill=INK)
-    d.text((mx, ay + 30), "WHERE IT HAPPENED", font=F_BOLD(9), fill=NAVY)
-    map_x, map_y, map_w, map_h = mx, ay + 44, 220, 140
+    # ---- Also on Wednesday: navy bar, map + 3-column list + date check ----
+    ay = 822
+    d.rectangle([0, ay, W, ay + 26], fill=NAVY)
+    d.text((mx, ay + 6), "ALSO ON WEDNESDAY — 24 MORE STORIES",
+           font=F_BOLD(12), fill=WHITE)
+    map_x, map_y, map_w, map_h = mx, ay + 34, 220, 106
 
     def project(lon, lat):
         px = map_x + (lon + 170) / 360.0 * map_w
@@ -483,48 +478,43 @@ def render(path):
                project(-2, 54)[0] + 3, project(-2, 54)[1] + 3],
               fill=LAND, outline=LAND_LINE)
     d.rectangle([map_x, map_y, map_x + map_w, map_y + map_h], outline=INK, width=2)
-    for label, lon, lat in MAP_LABELS:
-        lx, ly_ = project(lon, lat)
-        d.text((lx, ly_), label, font=F_BOLD(7), fill=GREY, anchor="ma")
     for n, lon, lat in MAP_DOTS:
         px, py = project(lon, lat)
         d.ellipse([px - 6, py - 6, px + 6, py + 6], fill=RED,
                   outline=WHITE, width=1)
         d.text((px, py - 4), str(n), font=F_BOLD(7),
                fill=WHITE, anchor="ma")
-    d.text((map_x, map_y + map_h + 6), "13 OF TODAY'S 35 STORIES, MAPPED",
-           font=F_BOLD(8), fill=GREY)
 
     for i, (n, text, src) in enumerate(LISTED):
         col = i // 8
         row = i % 8
         x = 260 + col * 193
-        y = ay + 30 + row * 21
-        d.text((x, y), f"{n}.", font=F_BOLD(10), fill=RED)
-        d.text((x + 22, y), text, font=F_REG(9), fill=INK)
+        y = ay + 36 + row * 13
+        d.text((x, y), f"{n}.", font=F_BOLD(9), fill=RED)
+        d.text((x + 20, y), text, font=F_REG(9), fill=INK)
 
     # Date check box (red header).
-    bx, by, bw, bh = 844, ay + 30, 156, 154
+    bx, by, bw, bh = 844, ay + 34, 156, 106
     d.rectangle([bx, by, bx + bw, by + bh], fill=WHITE, outline=INK, width=2)
-    d.rectangle([bx, by, bx + bw, by + 26], fill=RED)
-    d.text((bx + 8, by + 6), "DATE CHECK", font=F_BOLD(12), fill=WHITE)
+    d.rectangle([bx, by, bx + bw, by + 24], fill=RED)
+    d.text((bx + 8, by + 5), "DATE CHECK", font=F_BOLD(12), fill=WHITE)
     body = ("Every story above happened, or was first reported, on "
             "Wednesday 25 November 2026. Claims are labelled CLAIM. "
             "Sources: Reuters, BBC, AP, Al Jazeera, Xinhua, UEFA, ESA, "
             "ABS, LiveLaw.")
-    ty = by + 34
-    for line in wrap(d, body, F_REG(9), bw - 16):
-        d.text((bx + 8, ty), line, font=F_REG(9), fill=INK)
-        ty += 12
+    ty = by + 30
+    for line in wrap(d, body, F_REG(8), bw - 16):
+        d.text((bx + 8, ty), line, font=F_REG(8), fill=INK)
+        ty += 10
 
-    # ---- Dark footer strip ----
-    d.rectangle([0, 950, W, H], fill=INK)
-    d.text((W / 2, 964),
+    # ---- Navy footer strip ----
+    d.rectangle([0, 974, W, H], fill=NAVY)
+    d.text((mx, 990),
            "WORLD  |  BUSINESS  |  POLITICS  |  TECHNOLOGY  |  SCIENCE  |  "
            "HEALTH  |  SPORTS  |  ENTERTAINMENT",
-           font=F_BOLD(11), fill=WHITE, anchor="ma")
-    d.text((W / 2, 988), "One day. One page. The world, as it happened.",
-           font=F_SERIF_I(10), fill=(200, 196, 184), anchor="ma")
+           font=F_BOLD(11), fill=WHITE)
+    d.text((W - mx, 990), "One day. One page. The world, as it happened.",
+           font=F_SERIF_I(10), fill=(200, 196, 184), anchor="ra")
 
     img.save(path, format="PNG", optimize=True)
 
