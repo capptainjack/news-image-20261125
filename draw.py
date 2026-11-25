@@ -1,4 +1,4 @@
-# draw.py — renders the 25 November 2026 broadsheet front page.
+# draw.py — renders the 25 November 2026 broadsheet front page, KOMIK NEON style.
 # Run locally with Pillow:  python3 draw.py [output-path]
 # The graded entrypoint is main.ts, which only copies the shipped
 # entry.png into /output (Node stdlib only, no network, deterministic).
@@ -11,20 +11,24 @@ from PIL import Image, ImageDraw, ImageFont
 W, H = 1024, 1024
 FONT_DIR = "/usr/share/fonts/truetype/noto"
 
-PAPER = (247, 243, 232)
-INK = (17, 17, 17)
-NAVY = (30, 58, 95)
-RED = (185, 28, 28)
-GREY = (96, 92, 82)
-CARD = (253, 252, 247)
-LINE = (178, 172, 156)
-GREEN = (22, 101, 52)
-AMBER = (146, 64, 14)
-LAND = (207, 198, 172)
-OCEAN = (233, 239, 244)
-LAND_LINE = (138, 131, 113)
-TINT_BLUE = (232, 238, 244)
-TINT_RED = (252, 231, 231)
+PAPER = (233, 224, 255)
+INK = (12, 12, 12)
+PURPLE = (128, 0, 255)
+PURPLE_DARK = (90, 0, 180)
+GREEN = (0, 200, 120)
+GREEN_DARK = (0, 120, 70)
+YELLOW = (255, 220, 0)
+WHITE = (255, 255, 255)
+RED = (215, 25, 25)
+GREY = (74, 68, 92)
+ORANGE = (214, 120, 30)
+TINT_PURPLE = (214, 180, 255)
+TINT_GREEN = (170, 240, 210)
+TINT_YELLOW = (255, 238, 140)
+TINT_RED = (255, 190, 190)
+LAND = (222, 205, 170)
+LAND_LINE = (120, 110, 80)
+OCEAN = (220, 235, 245)
 
 
 def font(name, size):
@@ -56,82 +60,84 @@ def chip(d, x, y, text, bg, fg):
     f = F_BOLD(9)
     tw = d.textlength(text, font=f)
     pad = 5
-    d.rounded_rectangle([x, y, x + tw + pad * 2, y + 14], radius=3, fill=bg)
+    d.rectangle([x, y, x + tw + pad * 2, y + 14], fill=bg)
     d.text((x + pad, y + 2), text, font=f, fill=fg)
     return tw + pad * 2 + 6
 
 
-def draw_icon(d, kind, x, y, s, bg, fg):
-    # Big illustration panel (s x s) with a small vector scene per story.
-    d.rounded_rectangle([x, y, x + s, y + s], radius=8, fill=bg)
-    c = s / 2
+def star(d, cx, cy, r, fill):
+    q = r * 0.28
+    d.polygon([(cx, cy - r), (cx + q, cy - q), (cx + r, cy),
+               (cx + q, cy + q), (cx, cy + r), (cx - q, cy + q),
+               (cx - r, cy), (cx - q, cy - q)], fill=fill)
+
+
+def draw_scene(d, kind, x, y, s, fg):
+    # One vector scene drawn in an 84-unit box scaled to s x s.
+    k = s / 84.0
+    X = lambda v: x + v * k
+    Y = lambda v: y + v * k
     if kind == "flame":
-        # Refinery towers with flames and smoke.
-        d.line([(x + 10, y + s - 12), (x + s - 10, y + s - 12)], fill=fg, width=3)
-        d.rectangle([x + 16, y + 38, x + 32, y + s - 12], fill=fg)
-        d.rectangle([x + 48, y + 50, x + 64, y + s - 12], fill=fg)
-        d.rectangle([x + 21, y + 28, x + 27, y + 38], fill=fg)
-        d.rectangle([x + 53, y + 40, x + 59, y + 50], fill=fg)
-        d.polygon([(x + 24, y + 8), (x + 34, y + 26), (x + 28, y + 22),
-                   (x + 20, y + 28), (x + 16, y + 22)], fill=(214, 120, 30))
-        d.polygon([(x + 56, y + 22), (x + 64, y + 36), (x + 59, y + 33),
-                   (x + 53, y + 38), (x + 50, y + 32)], fill=(214, 120, 30))
-        d.ellipse([x + 38, y + 14, x + 46, y + 22], fill=(255, 255, 255))
-        d.ellipse([x + 66, y + 12, x + 72, y + 18], fill=(255, 255, 255))
+        d.line([(X(10), Y(72)), (X(74), Y(72))], fill=fg, width=3)
+        d.rectangle([X(16), Y(38), X(32), Y(72)], fill=fg)
+        d.rectangle([X(48), Y(50), X(64), Y(72)], fill=fg)
+        d.rectangle([X(21), Y(28), X(27), Y(38)], fill=fg)
+        d.rectangle([X(53), Y(40), X(59), Y(50)], fill=fg)
+        d.polygon([(X(24), Y(8)), (X(34), Y(26)), (X(28), Y(22)),
+                   (X(20), Y(28)), (X(16), Y(22))], fill=ORANGE)
+        d.polygon([(X(56), Y(22)), (X(64), Y(36)), (X(59), Y(33)),
+                   (X(53), Y(38)), (X(50), Y(32))], fill=ORANGE)
+        d.ellipse([X(38), Y(14), X(46), Y(22)], fill=WHITE)
+        d.ellipse([X(66), Y(12), X(72), Y(18)], fill=WHITE)
     elif kind == "rocket":
-        # Rocket lifting off past stars.
         for sx, sy in [(12, 12), (70, 16), (14, 62), (68, 60), (70, 38)]:
-            d.ellipse([x + sx - 2, y + sy - 2, x + sx + 2, y + sy + 2],
-                      fill=(255, 255, 255))
-        d.polygon([(x + c, y + 6), (x + c + 12, y + 32),
-                   (x + c - 12, y + 32)], fill=fg)
-        d.rectangle([x + c - 11, y + 30, x + c + 11, y + 58], fill=fg)
-        d.ellipse([x + c - 5, y + 36, x + c + 5, y + 46], fill=(255, 255, 255))
-        d.polygon([(x + c - 11, y + 48), (x + c - 22, y + 64),
-                   (x + c - 11, y + 58)], fill=fg)
-        d.polygon([(x + c + 11, y + 48), (x + c + 22, y + 64),
-                   (x + c + 11, y + 58)], fill=fg)
-        d.polygon([(x + c, y + 58), (x + c + 6, y + 72),
-                   (x + c - 6, y + 72)], fill=(214, 120, 30))
+            d.ellipse([X(sx - 2), Y(sy - 2), X(sx + 2), Y(sy + 2)], fill=WHITE)
+        d.polygon([(X(42), Y(6)), (X(54), Y(32)), (X(30), Y(32))], fill=fg)
+        d.rectangle([X(31), Y(30), X(53), Y(58)], fill=fg)
+        d.ellipse([X(37), Y(36), X(47), Y(46)], fill=WHITE)
+        d.polygon([(X(31), Y(48)), (X(20), Y(64)), (X(31), Y(58))], fill=fg)
+        d.polygon([(X(53), Y(48)), (X(64), Y(64)), (X(53), Y(58))], fill=fg)
+        d.polygon([(X(42), Y(58)), (X(48), Y(72)), (X(36), Y(72))], fill=ORANGE)
     elif kind == "chart":
-        # Falling market line over a grid, with axis.
         for gy in [22, 40, 58]:
-            d.line([(x + 10, y + gy), (x + s - 10, y + gy)],
-                   fill=(255, 255, 255), width=1)
-        d.line([(x + 10, y + s - 14), (x + s - 10, y + s - 14)], fill=fg, width=2)
-        pts = [(x + 14, y + 20), (x + 28, y + 34), (x + 40, y + 30),
-               (x + 54, y + 52), (x + 68, y + 62)]
+            d.line([(X(10), Y(gy)), (X(74), Y(gy))], fill=WHITE, width=1)
+        d.line([(X(10), Y(70)), (X(74), Y(70))], fill=fg, width=2)
+        pts = [(X(14), Y(20)), (X(28), Y(34)), (X(40), Y(30)),
+               (X(54), Y(52)), (X(68), Y(62))]
         d.line(pts, fill=fg, width=4, joint="curve")
-        d.polygon([(x + 68, y + 62), (x + 58, y + 60), (x + 66, y + 50)], fill=fg)
+        d.polygon([(X(68), Y(62)), (X(58), Y(60)), (X(66), Y(50))], fill=fg)
     elif kind == "bars":
-        # Rising bars with a baseline and a red marker dot.
-        d.line([(x + 10, y + s - 14), (x + s - 10, y + s - 14)], fill=fg, width=2)
+        d.line([(X(10), Y(70)), (X(74), Y(70))], fill=fg, width=2)
         for i, h in enumerate([26, 40, 54]):
-            bx = x + 14 + i * 20
-            d.rectangle([bx, y + s - 14 - h, bx + 14, y + s - 14], fill=fg)
-        d.ellipse([x + 62, y + 12, x + 72, y + 22], fill=RED)
+            bx = X(14 + i * 20)
+            d.rectangle([bx, Y(70 - h), bx + 14 * k, Y(70)], fill=fg)
+        d.ellipse([X(62), Y(12), X(72), Y(22)], fill=RED)
     elif kind == "shield":
-        # Shield with a check and two stars.
         for sx, sy in [(14, 10), (70, 10)]:
-            d.ellipse([x + sx - 2, y + sy - 2, x + sx + 2, y + sy + 2],
-                      fill=(255, 255, 255))
-        d.polygon([(x + c, y + 8), (x + s - 12, y + 18), (x + s - 12, y + 42),
-                   (x + c, y + 76), (x + 12, y + 42), (x + 12, y + 18)], fill=fg)
-        d.line([(x + c - 12, y + 42), (x + c - 3, y + 52),
-                (x + c + 14, y + 30)], fill=(255, 255, 255), width=5, joint="curve")
-    elif kind == "exit":
-        # Door, exit arrow and a small suitcase.
-        d.rectangle([x + 16, y + 12, x + 40, y + 72], outline=fg, width=3)
-        d.ellipse([x + 33, y + 40, x + 37, y + 44], fill=fg)
-        d.line([(x + 30, y + 42), (x + 62, y + 42)], fill=fg, width=4)
-        d.polygon([(x + 62, y + 42), (x + 50, y + 32), (x + 50, y + 52)], fill=fg)
-        d.rectangle([x + 48, y + 56, x + 68, y + 70], outline=fg, width=2)
-        d.line([(x + 54, y + 52), (x + 62, y + 52)], fill=fg, width=2)
+            d.ellipse([X(sx - 2), Y(sy - 2), X(sx + 2), Y(sy + 2)], fill=WHITE)
+        d.polygon([(X(42), Y(8)), (X(72), Y(18)), (X(72), Y(42)),
+                   (X(42), Y(76)), (X(12), Y(42)), (X(12), Y(18))], fill=fg)
+        d.line([(X(30), Y(42)), (X(39), Y(52)), (X(56), Y(30))],
+               fill=WHITE, width=5, joint="curve")
+
+
+def draw_panel(d, kind, x, y, w, h, bg, fg):
+    # Neon illustration panel: solid colour, thick black frame, stars,
+    # and one big vector scene centred in it.
+    d.rectangle([x, y, x + w, y + h], fill=bg, outline=INK, width=3)
+    star(d, x + 20, y + 18, 7, WHITE)
+    star(d, x + w - 20, y + 20, 5, WHITE)
+    star(d, x + 26, y + h - 18, 5, WHITE)
+    star(d, x + w - 28, y + h - 22, 7, WHITE)
+    s = int(min(w, h) * 0.92)
+    sx = x + (w - s) // 2
+    sy = y + (h - s) // 2
+    draw_scene(d, kind, sx, sy, s, fg)
 
 
 def draw_mini(d, kind, x, y, s, bg, fg):
-    # Small 16x16 category icon for the numbered list.
-    d.rounded_rectangle([x, y, x + s, y + s], radius=4, fill=bg)
+    # Small 15x15 category icon for the numbered list.
+    d.rectangle([x, y, x + s, y + s], fill=bg, outline=INK, width=1)
     c = s / 2
     if kind == "target":
         d.ellipse([x + 2, y + 2, x + s - 2, y + s - 2], outline=fg, width=2)
@@ -143,14 +149,14 @@ def draw_mini(d, kind, x, y, s, bg, fg):
         d.polygon([(x + 8, y + 2), (x + 13, y + 9), (x + 10, y + 11),
                    (x + 12, y + 14), (x + 8, y + 15), (x + 4, y + 14),
                    (x + 6, y + 11), (x + 3, y + 9)], fill=fg)
-        d.ellipse([x + 6, y + 10, x + 10, y + 14], fill=(255, 255, 255))
+        d.ellipse([x + 6, y + 10, x + 10, y + 14], fill=WHITE)
     elif kind == "flag":
         d.line([(x + 5, y + 2), (x + 5, y + 14)], fill=fg, width=2)
         d.polygon([(x + 5, y + 2), (x + 13, y + 4), (x + 5, y + 7)], fill=fg)
     elif kind == "home":
         d.polygon([(x + 8, y + 2), (x + 14, y + 7), (x + 2, y + 7)], fill=fg)
         d.rectangle([x + 4, y + 7, x + 12, y + 14], fill=fg)
-        d.rectangle([x + 7, y + 10, x + 9, y + 14], fill=(255, 255, 255))
+        d.rectangle([x + 7, y + 10, x + 9, y + 14], fill=WHITE)
     elif kind == "court":
         d.line([(x + 8, y + 3), (x + 8, y + 12)], fill=fg, width=2)
         d.line([(x + 3, y + 3), (x + 13, y + 3)], fill=fg, width=2)
@@ -160,8 +166,7 @@ def draw_mini(d, kind, x, y, s, bg, fg):
     elif kind == "rocket":
         d.polygon([(x + 8, y + 2), (x + 11, y + 8), (x + 5, y + 8)], fill=fg)
         d.rectangle([x + 6, y + 8, x + 10, y + 12], fill=fg)
-        d.polygon([(x + 8, y + 12), (x + 10, y + 15), (x + 6, y + 15)],
-                  fill=(214, 120, 30))
+        d.polygon([(x + 8, y + 12), (x + 10, y + 15), (x + 6, y + 15)], fill=ORANGE)
     elif kind == "ball":
         d.ellipse([x + 2, y + 2, x + s - 2, y + s - 2], outline=fg, width=2)
         d.ellipse([x + c - 2, y + c - 2, x + c + 2, y + c + 2], fill=fg)
@@ -169,10 +174,9 @@ def draw_mini(d, kind, x, y, s, bg, fg):
         d.line([(x + 2, y + c), (x + c - 2, y + c)], fill=fg, width=1)
         d.line([(x + s - 2, y + c), (x + c + 2, y + c)], fill=fg, width=1)
     elif kind == "warn":
-        d.polygon([(x + 8, y + 2), (x + 15, y + 14), (x + 1, y + 14)],
-                  fill=(214, 120, 30))
-        d.line([(x + 8, y + 6), (x + 8, y + 10)], fill=(255, 255, 255), width=2)
-        d.ellipse([x + 7, y + 11, x + 9, y + 13], fill=(255, 255, 255))
+        d.polygon([(x + 8, y + 2), (x + 15, y + 14), (x + 1, y + 14)], fill=ORANGE)
+        d.line([(x + 8, y + 6), (x + 8, y + 10)], fill=WHITE, width=2)
+        d.ellipse([x + 7, y + 11, x + 9, y + 13], fill=WHITE)
     elif kind == "chip":
         d.rectangle([x + 4, y + 4, x + 12, y + 12], outline=fg, width=2)
         d.ellipse([x + 7, y + 7, x + 9, y + 9], fill=fg)
@@ -200,42 +204,55 @@ def draw_mini(d, kind, x, y, s, bg, fg):
         d.line([(x + 3, y + 12), (x + 6, y + 8), (x + 9, y + 10),
                 (x + 13, y + 4)], fill=fg, width=2)
         d.polygon([(x + 13, y + 4), (x + 10, y + 4), (x + 13, y + 7)], fill=fg)
+    elif kind == "exit":
+        d.rectangle([x + 3, y + 3, x + 8, y + 13], outline=fg, width=1)
+        d.line([(x + 6, y + 8), (x + 13, y + 8)], fill=fg, width=2)
+        d.polygon([(x + 13, y + 8), (x + 10, y + 5), (x + 10, y + 11)], fill=fg)
 
 
-HEROES = [
-    ("MIDDLE EAST", "CLAIM", RED, "flame", TINT_RED, RED,
+# Colour per list category: (mini icon background, foreground).
+ICON_STYLE = {
+    "target": (TINT_RED, RED), "flame": (TINT_RED, RED),
+    "warn": (TINT_RED, RED),
+    "vote": (TINT_PURPLE, PURPLE_DARK), "flag": (TINT_PURPLE, PURPLE_DARK),
+    "court": (TINT_PURPLE, PURPLE_DARK), "exit": (TINT_PURPLE, PURPLE_DARK),
+    "chart": (TINT_GREEN, GREEN_DARK), "drop": (TINT_GREEN, GREEN_DARK),
+    "poll": (TINT_GREEN, GREEN_DARK),
+    "rocket": (TINT_YELLOW, (140, 90, 0)), "ball": (TINT_YELLOW, (140, 90, 0)),
+    "chip": (TINT_YELLOW, (140, 90, 0)), "drone": (TINT_YELLOW, (140, 90, 0)),
+    "plane": (TINT_YELLOW, (140, 90, 0)), "home": (TINT_YELLOW, (140, 90, 0)),
+}
+
+BIG_HEROES = [
+    ("MIDDLE EAST", "CLAIM", RED, "flame", PURPLE,
      "Houthis claim strikes on Saudi refinery and Riyadh",
      "Group says it hit Ras Tanura refinery and the capital's "
      "financial district; coalition says it shot down 4 drones.",
      "Reuters"),
-    ("ASIA", "REPORTED", GREEN, "rocket", TINT_BLUE, NAVY,
+    ("ASIA", "REPORTED", (0, 160, 95), "rocket", GREEN,
      "Shenzhou-24 lifts off with first foreign astronaut",
      "China's crew to Tiangong includes Pakistani Muhammad Zeeshan "
      "Ali, the first foreign visitor to the station.",
      "Xinhua / AP"),
-    ("WORLD", "REPORTED", GREEN, "chart", TINT_BLUE, NAVY,
+]
+
+CARDS = [
+    ("WORLD", "REPORTED", (0, 160, 95), "chart", GREEN,
      "Asian markets tumble in renewed AI sell-off",
-     "MSCI Asia ex-Japan falls 2.3%; Korea drops as much as 5.3% "
-     "as fresh US tariff threats loom.",
+     "MSCI Asia ex-Japan falls 2.3%; Korea down 5.3%.",
      "Reuters"),
-    ("EUROPE", "REPORTED", GREEN, "bars", TINT_BLUE, NAVY,
+    ("EUROPE", "REPORTED", (0, 160, 95), "bars", PURPLE,
      "BBC: at least 490,334 Russian soldiers dead",
-     "BBC and Mediazona count from leaked Rosstat records since "
-     "Feb 2022; the true toll is likely higher.",
+     "BBC and Mediazona count from leaked Rosstat records.",
      "BBC"),
-    ("OCEANIA", "REPORTED", GREEN, "shield", TINT_BLUE, NAVY,
+    ("OCEANIA", "REPORTED", (0, 160, 95), "shield", YELLOW,
      "Australia signs security pact with Solomons",
-     "Canberra named the primary security partner; the pact bars "
-     "any foreign military base on the islands.",
+     "Canberra named the primary security partner.",
      "AP"),
-    ("ASIA", "REPORTED", GREEN, "exit", TINT_BLUE, NAVY,
-     "North Korea expels Switzerland's top diplomat",
-     "Pyongyang orders the envoy out within 48 hours and the new "
-     "Swiss office closed, KCNA reports.",
-     "AP / KCNA"),
 ]
 
 LISTED = [
+    (6, "exit", "North Korea expels Switzerland's top diplomat", "AP / KCNA"),
     (7, "target", "Coalition strikes Houthi-run Hodeidah port", "Al Jazeera"),
     (8, "vote", "Eisenkot signs first coalition pact with Lieberman", "Al Jazeera"),
     (9, "flame", "Strike reported in Gaza's Shati camp; 4 reported killed", "Al Jazeera"),
@@ -317,146 +334,149 @@ CONTINENTS = [
 # numbered markers do not merge on this small schematic map.
 MAP_DOTS = [
     (1, 46.7, 24.6), (7, 34.0, 6.0), (2, 98.5, 39.8), (6, 128.0, 42.0),
-    (10, 30.7, 46.5), (12, -3.7, 40.4), (16, 106.8, -6.6), (17, 77.2, 28.6),
+    (10, 34.0, 44.0), (12, -10.0, 38.0), (16, 106.8, -6.6), (17, 77.2, 28.6),
     (5, 149.1, -35.3), (25, -8.0, 12.6), (20, -77.0, 38.9),
     (22, -95.0, 44.0), (18, 115.0, 20.0),
 ]
 
 MAP_LABELS = [
     ("N. AMERICA", -128, 58), ("S. AMERICA", -60, -20),
-    ("EUROPE", 8, 66), ("AFRICA", 14, -2),
-    ("ASIA", 75, 60), ("OCEANIA", 125, -30),
+    ("EUROPE", 8, 68), ("AFRICA", 14, -2),
+    ("ASIA", 75, 60), ("OCEANIA", 118, -30),
 ]
 
 
 def render(path):
     img = Image.new("RGB", (W, H), PAPER)
     d = ImageDraw.Draw(img)
-    mx = 26
+    mx = 24
     col_w = 478
     x2 = mx + col_w + 16
 
-    # ---- Masthead ----
-    d.text((W / 2, 14), "ONE DAY  •  ONE PAGE  •  THE WORLD",
-           font=F_BOLD(11), fill=GREY, anchor="ma")
-    d.text((W / 2, 30), "THE WORLD TODAY",
-           font=F_BLACK(54), fill=INK, anchor="ma")
-    d.rectangle([mx, 92, W - mx, 118], fill=INK)
-    d.text((mx + 10, 98), "WEDNESDAY, 25 NOVEMBER 2026",
-           font=F_BOLD(15), fill=(255, 255, 255))
-    d.text((W - mx - 10, 98), "30 STORIES  •  6 CONTINENTS",
-           font=F_BOLD(15), fill=(255, 255, 255), anchor="ra")
+    # ---- Masthead: yellow bar, thick black frame, black date strip ----
+    d.rectangle([mx, 16, W - mx, 100], fill=YELLOW, outline=INK, width=4)
+    d.text((mx + 16, 24), "THE WORLD TODAY", font=F_BLACK(40), fill=INK)
+    d.text((W - mx - 16, 34), "30 STORIES  •  6 CONTINENTS",
+           font=F_BOLD(13), fill=INK, anchor="ra")
+    d.rectangle([mx, 68, W - mx, 100], fill=INK)
+    d.text((mx + 16, 74), "WEDNESDAY, 25 NOVEMBER 2026",
+           font=F_BOLD(15), fill=YELLOW)
+    d.text((W - mx - 16, 77), "ONE DAY  •  ONE PAGE  •  THE WORLD",
+           font=F_BOLD(10), fill=WHITE, anchor="ra")
     sub = ("TOP OF THE DAY:  Houthis claim Saudi refinery attack  •  "
            "Shenzhou-24 carries the first foreign astronaut  •  "
            "Asian markets tumble")
-    for i, line in enumerate(wrap(d, sub, F_REG(13), W - 2 * mx)):
-        d.text((W / 2, 126 + i * 18), line, font=F_REG(13),
-               fill=INK, anchor="ma")
+    d.text((W / 2, 110), sub, font=F_BOLD(12), fill=INK, anchor="ma")
 
-    # ---- 6 hero stories ----
-    for idx, hero in enumerate(HEROES):
-        region, status, sbg, kind, tint, fg, head, summ, src = hero
-        col = idx % 2
-        row = idx // 2
-        x = mx if col == 0 else x2
-        y = 166 + row * 108
-        d.rounded_rectangle([x, y, x + col_w, y + 100], radius=6,
-                            fill=CARD, outline=LINE, width=1)
-        d.rectangle([x, y + 6, x + 4, y + 94], fill=RED if status == "CLAIM" else NAVY)
-        draw_icon(d, kind, x + 12, y + 8, 84, tint, fg)
-        tx = x + 108
-        d.text((tx, y + 10), region, font=F_BOLD(10), fill=NAVY)
-        cw = chip(d, tx + d.textlength(region, font=F_BOLD(10)) + 8, y + 8,
-                  status, sbg, (255, 255, 255))
+    # ---- 2 big heroes ----
+    for idx, hero in enumerate(BIG_HEROES):
+        region, status, sbg, kind, bg, head, summ, src = hero
+        x = mx if idx == 0 else x2
+        y = 136
+        d.rectangle([x, y, x + col_w, y + 216], fill=WHITE, outline=INK, width=4)
+        draw_panel(d, kind, x + 4, y + 4, col_w - 8, 110, bg, INK)
+        tx = x + 16
+        ty = y + 122
+        d.text((tx, ty), region, font=F_BOLD(10), fill=PURPLE_DARK)
+        cw = chip(d, tx + d.textlength(region, font=F_BOLD(10)) + 8, ty - 2,
+                  status, sbg, WHITE)
         sx = tx + d.textlength(region, font=F_BOLD(10)) + 8 + cw
-        d.text((sx, y + 10), src, font=F_IT(10), fill=GREY)
-        d.text((tx, y + 24), f"{idx + 1}.", font=F_BLACK(15), fill=RED)
-        hw = col_w - 108 - 12
-        hl = wrap(d, head, F_BOLD(16), hw - 24)
-        hy = y + 24
-        for line in hl[:2]:
-            d.text((tx + 24, hy), line, font=F_BOLD(16), fill=INK)
-            hy += 18
-        sy = y + 62
-        for line in wrap(d, summ, F_REG(12), hw)[:2]:
+        d.text((sx, ty), src, font=F_IT(10), fill=GREY)
+        hy = ty + 18
+        for line in wrap(d, head, F_BLACK(17), col_w - 32)[:2]:
+            d.text((tx, hy), line, font=F_BLACK(17), fill=INK)
+            hy += 20
+        sy = ty + 60
+        for line in wrap(d, summ, F_REG(12), col_w - 32)[:2]:
             d.text((tx, sy), line, font=F_REG(12), fill=(52, 48, 40))
-            sy += 14
+            sy += 15
 
-    # ---- The day in numbers ----
-    y0 = 494
-    d.rounded_rectangle([mx, y0, mx + col_w, y0 + 148], radius=6,
-                        fill=CARD, outline=LINE, width=1)
-    d.text((mx + 12, y0 + 8), "THE DAY IN NUMBERS",
-           font=F_BOLD(14), fill=INK)
-    d.line([(mx + 12, y0 + 30), (mx + col_w - 12, y0 + 30)], fill=LINE, width=1)
+    # ---- 3 story cards ----
+    for idx, card in enumerate(CARDS):
+        region, status, sbg, kind, bg, head, summ, src = card
+        x = mx + idx * (312 + 16)
+        y = 364
+        d.rectangle([x, y, x + 312, y + 168], fill=WHITE, outline=INK, width=3)
+        draw_panel(d, kind, x + 4, y + 4, 304, 80, bg, INK)
+        tx = x + 14
+        hy = y + 92
+        for line in wrap(d, head, F_BOLD(14), 312 - 28)[:2]:
+            d.text((tx, hy), line, font=F_BOLD(14), fill=INK)
+            hy += 17
+        d.text((tx, y + 130), region + "  •  " + src, font=F_BOLD(9), fill=GREY)
+        d.text((tx, y + 146), summ, font=F_REG(10), fill=(52, 48, 40))
+
+    # ---- Numbered list: the rest of the day, 25 stories ----
+    ly = 544
+    d.text((mx, ly), "THE REST OF THE DAY  —  25 MORE STORIES",
+           font=F_BLACK(14), fill=INK)
+    d.rectangle([mx, ly + 22, W - mx, ly + 25], fill=INK)
+    row_h = 18
+    for i, (n, kind, text, src) in enumerate(LISTED):
+        col = i // 13
+        row = i % 13
+        x = mx if col == 0 else x2
+        y = ly + 30 + row * row_h
+        d.text((x, y), f"{n}.", font=F_BOLD(11), fill=RED)
+        bg, fg = ICON_STYLE[kind]
+        draw_mini(d, kind, x + 24, y - 1, 15, bg, fg)
+        d.text((x + 44, y), text, font=F_REG(11), fill=INK)
+        tw = d.textlength(text, font=F_REG(11))
+        d.text((x + 44 + tw + 6, y), "— " + src, font=F_IT(9), fill=GREY)
+
+    # ---- The day in numbers (yellow) ----
+    y0 = 818
+    d.rectangle([mx, y0, mx + col_w, y0 + 128], fill=YELLOW, outline=INK, width=3)
+    d.text((mx + 12, y0 + 8), "THE DAY IN NUMBERS", font=F_BLACK(13), fill=INK)
+    d.rectangle([mx + 12, y0 + 28, mx + col_w - 12, y0 + 30], fill=INK)
     for i, (num, label) in enumerate(NUMBERS):
         cx = mx + 12 + (i % 2) * 235
-        cy = y0 + 38 + (i // 2) * 37
-        d.text((cx, cy), num, font=F_BOLD(21),
-               fill=RED if num.startswith("-") else NAVY)
-        d.text((cx, cy + 23), label, font=F_REG(10), fill=GREY)
+        cy = y0 + 34 + (i // 2) * 30
+        d.text((cx, cy), num, font=F_BOLD(17),
+               fill=RED if num.startswith("-") else PURPLE_DARK)
+        d.text((cx, cy + 19), label, font=F_REG(9), fill=INK)
 
-    # ---- Map ----
-    d.rounded_rectangle([x2, y0, x2 + col_w, y0 + 148], radius=6,
-                        fill=CARD, outline=LINE, width=1)
-    d.text((x2 + 12, y0 + 8), "WHERE IT HAPPENED",
-           font=F_BOLD(14), fill=INK)
-    d.line([(x2 + 12, y0 + 30), (x2 + col_w - 12, y0 + 30)], fill=LINE, width=1)
-    map_x, map_y, map_w, map_h = x2 + 10, y0 + 36, col_w - 20, 106
+    # ---- Map (green) ----
+    d.rectangle([x2, y0, x2 + col_w, y0 + 128], fill=GREEN, outline=INK, width=3)
+    d.text((x2 + 12, y0 + 8), "WHERE IT HAPPENED", font=F_BLACK(13), fill=WHITE)
+    map_x, map_y, map_w, map_h = x2 + 8, y0 + 32, col_w - 16, 90
+    d.rectangle([map_x, map_y, map_x + map_w, map_y + map_h],
+                fill=WHITE, outline=INK, width=2)
 
     def project(lon, lat):
         px = map_x + (lon + 170) / 360.0 * map_w
         py = map_y + (75 - lat) / 130.0 * map_h
         return (px, py)
 
-    d.rounded_rectangle([map_x, map_y, map_x + map_w, map_y + map_h],
-                        radius=4, fill=OCEAN)
+    d.rectangle([map_x, map_y, map_x + map_w, map_y + map_h], fill=OCEAN)
     for poly in CONTINENTS:
         d.polygon([project(lon, lat) for lon, lat in poly],
                   fill=LAND, outline=LAND_LINE)
-    d.ellipse([project(139, 39)[0] - 4, project(139, 39)[1] - 7,
-               project(139, 39)[0] + 4, project(139, 39)[1] + 7],
+    d.ellipse([project(139, 39)[0] - 3, project(139, 39)[1] - 5,
+               project(139, 39)[0] + 3, project(139, 39)[1] + 5],
               fill=LAND, outline=LAND_LINE)
-    d.ellipse([project(-2, 54)[0] - 5, project(-2, 54)[1] - 6,
-               project(-2, 54)[0] + 5, project(-2, 54)[1] + 6],
+    d.ellipse([project(-2, 54)[0] - 4, project(-2, 54)[1] - 4,
+               project(-2, 54)[0] + 4, project(-2, 54)[1] + 4],
               fill=LAND, outline=LAND_LINE)
+    d.rectangle([map_x, map_y, map_x + map_w, map_y + map_h], outline=INK, width=2)
     for label, lon, lat in MAP_LABELS:
         lx, ly_ = project(lon, lat)
         d.text((lx, ly_), label, font=F_BOLD(8), fill=GREY, anchor="ma")
     for n, lon, lat in MAP_DOTS:
         px, py = project(lon, lat)
-        d.ellipse([px - 10, py - 10, px + 10, py + 10], fill=RED,
-                  outline=(255, 255, 255), width=1)
+        d.ellipse([px - 8, py - 8, px + 8, py + 8], fill=RED,
+                  outline=WHITE, width=1)
         d.text((px, py - 5), str(n), font=F_BOLD(9),
-               fill=(255, 255, 255), anchor="ma")
-
-    # ---- Numbered list: the rest of the day ----
-    ly = 656
-    d.text((mx, ly), "THE REST OF THE DAY  —  24 MORE STORIES",
-           font=F_BOLD(14), fill=INK)
-    d.line([(mx, ly + 22), (W - mx, ly + 22)], fill=INK, width=2)
-    row_h = 25
-    for i, (n, kind, text, src) in enumerate(LISTED):
-        col = i // 12
-        row = i % 12
-        x = mx if col == 0 else x2
-        y = ly + 28 + row * row_h
-        d.text((x, y), f"{n}.", font=F_BOLD(12), fill=RED)
-        icon_bg = TINT_RED if kind in ("flame", "target", "warn") else TINT_BLUE
-        icon_fg = RED if kind in ("flame", "target", "warn") else NAVY
-        draw_mini(d, kind, x + 26, y - 1, 16, icon_bg, icon_fg)
-        d.text((x + 48, y), text, font=F_REG(12), fill=INK)
-        tw = d.textlength(text, font=F_REG(12))
-        d.text((x + 48 + tw + 6, y), "— " + src, font=F_IT(10), fill=GREY)
+               fill=WHITE, anchor="ma")
 
     # ---- Footer: date check ----
-    fy = 986
-    d.line([(mx, fy), (W - mx, fy)], fill=INK, width=2)
-    d.text((W / 2, fy + 8),
+    fy = 958
+    d.rectangle([mx, fy, W - mx, fy + 3], fill=INK)
+    d.text((W / 2, fy + 10),
            "DATE CHECK:  every story above happened, or was first reported, "
            "on Wednesday 25 November 2026.",
            font=F_BOLD(11), fill=INK, anchor="ma")
-    d.text((W / 2, fy + 24),
+    d.text((W / 2, fy + 26),
            "Claims are labelled CLAIM.  Sources: Reuters, BBC, AP, Al Jazeera, "
            "Xinhua, UEFA, ESA.",
            font=F_REG(10), fill=GREY, anchor="ma")
